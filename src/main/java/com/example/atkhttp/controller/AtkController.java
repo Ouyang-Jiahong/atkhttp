@@ -9,17 +9,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * ATK 控制器，提供 HTTP 接口与 ATK 服务进行交互。
+ * 包含 open、connect、close 三个操作。
+ */
 @RestController
 @RequestMapping("/atk")
 public class AtkController {
 
-    // 打开 debug，便于看底层日志（需要可改成 false）
     private final AtkClientTools tools = AtkClientTools.getInstance(true);
 
-    // 记录当前连接
     private volatile String currentHost;
     private volatile int currentPort;
 
+    /** 用于暂存当前命令的回调事件 */
+    private final java.util.concurrent.ConcurrentLinkedQueue<String> events = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    /** 用于阻塞等待一次命令的回调完成 */
+    private volatile CountDownLatch pending;
+
+    /**
+     * 建立与 ATK 的连接
+     */
     @PostMapping("/open")
     public String atkOpen(@RequestBody OpenRequest req) throws Exception {
         currentHost = req.host;
@@ -29,23 +39,40 @@ public class AtkController {
 
         IClientCallBack cb = new IClientCallBack() {
             @Override public void onError(Throwable e) {
-                System.err.println("[CB] onError: " + e);
+                String msg = "[CB] onError: " + e;
+                System.err.println(msg);
+                events.add(msg);
+                CountDownLatch p = pending;
+                if (p != null) p.countDown();
             }
             @Override public void onConnected(String address, int port) {
-                System.out.println("[CB] onConnected: " + address + ":" + port);
+                String msg = "[CB] onConnected: " + address + ":" + port;
+                System.out.println(msg);
+                events.add(msg);
                 connected.countDown();
             }
             @Override public void onReceived(String address, int port, String type, String payload) {
-                System.out.println("[CB] onReceived: " + type + " | " + payload);
+                String msg = "[CB] onReceived: " + type + " | " + payload;
+                System.out.println(msg);
+                events.add(msg);
             }
             @Override public void onReceivedEx(String address, int port, CmdResult result, int code, String gStrCommand) {
-                System.out.println("[CB] onReceivedEx: code=" + code + " cmd=" + gStrCommand);
+                String header = "[CB] onReceivedEx: code=" + code + " cmd=" + gStrCommand;
+                System.out.println(header);
+                events.add(header);
                 if (result != null && result.getmVectData() != null) {
-                    for (String s : result.getmVectData()) System.out.println(s);
+                    for (String s : result.getmVectData()) {
+                        System.out.println(s);
+                        events.add(s);
+                    }
                 }
+                CountDownLatch p = pending;
+                if (p != null) p.countDown();
             }
             @Override public void onSent(String address, int port, byte[] data) {
-                System.out.println("[CB] onSent: " + data.length + " bytes");
+                String msg = "[CB] onSent: " + data.length + " bytes";
+                System.out.println(msg);
+                events.add(msg);
             }
         };
 
@@ -57,16 +84,31 @@ public class AtkController {
         return "connected";
     }
 
+    /**
+     * 发送命令到 ATK，并收集回调信息
+     */
     @PostMapping("/connect")
-    public String atkConnect(@RequestBody ConnectRequest req) {
+    public EventsResponse atkConnect(@RequestBody ConnectRequest req) throws InterruptedException {
+        events.clear();
+        pending = new CountDownLatch(1);
+
         CommandData data = new CommandData();
         data.setStrCommand(nz(req.command));
         data.setStrObjPath(nz(req.objPath));
         data.setStrCMDParam(nz(req.cmdParam));
-        tools.atkConnect(currentHost, currentPort, data, false);
-        return "sent";
+
+        tools.atkExecuteCommand(currentHost, currentPort, data, false);
+
+        long waitMs = (req.waitMs != null && req.waitMs > 0) ? req.waitMs : 3000L;
+        pending.await(waitMs, TimeUnit.MILLISECONDS);
+        pending = null;
+
+        return new EventsResponse(new java.util.ArrayList<>(events));
     }
 
+    /**
+     * 关闭与 ATK 的连接
+     */
     @PostMapping("/close")
     public String atkClose() {
         tools.atkClose(currentHost, currentPort);
@@ -77,5 +119,12 @@ public class AtkController {
 
     // --- DTO ---
     public static class OpenRequest { public String host; public int port; }
-    public static class ConnectRequest { public String command; public String objPath; public String cmdParam; }
+    public static class ConnectRequest {
+        public String command; public String objPath; public String cmdParam;
+        public Long waitMs;
+    }
+    public static class EventsResponse {
+        public java.util.List<String> events;
+        public EventsResponse(java.util.List<String> events) { this.events = events; }
+    }
 }
