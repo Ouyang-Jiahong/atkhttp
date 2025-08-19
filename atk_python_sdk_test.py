@@ -2,13 +2,14 @@ from atk_python_sdk import atkOpen, atkConnect, atkClose
 
 if __name__ == "__main__":
     base = "http://localhost:8080"
+    atkClose(base)
     atkOpen(base, "127.0.0.1", 6655)
 
     # atkConnect(base, "Access", "*/Satellite/Sat2 */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\"")
     # atkConnect(base, "Report_RM", "*/Satellite/Sat2 Style \"Access\" Type Display AccessObject */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\" TimeStep 60")
 
-    atkConnect(base, "AER", "*/Satellite/Sat2 */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\"")
-    atkConnect(base, "Report_RM", "*/Satellite/Sat2 Style \"AER\" Type Display AccessObject */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\" TimeStep 60")
+    # atkConnect(base, "AER", "*/Satellite/Sat2 */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\"")
+    # atkConnect(base, "Report_RM", "*/Satellite/Sat2 Style \"AER\" Type Display AccessObject */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\" TimeStep 60")
 
     # （1）场景与时间
     print(atkConnect(base, "New", "/ Scenario SimpleScenario"))
@@ -32,8 +33,9 @@ if __name__ == "__main__":
     atkConnect(base, "Point", "*/Facility/GroundStation1/Sensor/GroundSensor1 Fixed Quaternion 0 0 0 -1");
 
     # （5）可见性 + 报表（示例）
-    print(atkConnect(base, "Access", "*/Satellite/Sat2 */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\""))
-    print(atkConnect(base, "Report_RM", "*/Satellite/Sat2 Style \"Access\" Type Display AccessObject */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\" TimeStep 60"))
+    atkConnect(base, "Animate", "* Reset");
+    atkConnect(base, "Access", "*/Satellite/Sat2 */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\"")
+    atkConnect(base, "Report_RM", "*/Satellite/Sat2 Style \"Access\" Type Display AccessObject */Satellite/Sat1 TimePeriod \"1 Jan 2025 00:00:00.00\" \"5 Jan 2025 00:00:00.00\" TimeStep 60")
 
     # 可选：保存场景
     atkConnect(base, "Save", "/ *");
