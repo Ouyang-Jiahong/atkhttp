@@ -10,8 +10,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * ATK 控制器，提供 HTTP 接口与 ATK 服务进行交互。
- * 包含 open、connect、close 三个操作。
+ * ATK 控制器
+ *
+ * 提供基于 HTTP 的 REST 接口，用于与 ATK 服务建立连接、发送命令和关闭连接。
+ * 支持以下操作：
+ * - /open：建立与指定 ATK 服务的 TCP 连接
+ * - /connect：发送控制命令并等待响应结果
+ * - /close：关闭当前连接
+ *
+ * 本控制器通过 AtkClientTools 与底层 TCP 客户端交互，并使用回调机制收集通信过程中的事件信息。
  */
 @RestController
 @RequestMapping("/atk")
@@ -22,13 +29,27 @@ public class AtkController {
     private volatile String currentHost;
     private volatile int currentPort;
 
-    /** 用于暂存当前命令的回调事件 */
+    /**
+     * 存储回调过程中产生的事件日志（如连接状态、接收数据等）
+     * 使用线程安全的队列以支持异步回调写入
+     */
     private final java.util.concurrent.ConcurrentLinkedQueue<String> events = new java.util.concurrent.ConcurrentLinkedQueue<>();
-    /** 用于阻塞等待一次命令的回调完成 */
+
+    /**
+     * 用于同步等待单次命令执行完成的信号量
+     * 在发送命令后阻塞线程，直到收到响应或超时
+     */
     private volatile CountDownLatch pending;
 
     /**
-     * 建立与 ATK 的连接
+     * 建立与 ATK 服务的连接
+     *
+     * 接收主机地址和端口，初始化连接并注册回调处理器。
+     * 等待最多 5 秒以确认连接成功，超时则抛出异常。
+     *
+     * @param req 包含目标主机（host）和端口（port）的请求体
+     * @return 若连接成功，返回 "connected"
+     * @throws Exception 若连接超时或初始化失败
      */
     @PostMapping("/open")
     public String atkOpen(@RequestBody OpenRequest req) throws Exception {
@@ -85,7 +106,14 @@ public class AtkController {
     }
 
     /**
-     * 发送命令到 ATK，并收集回调信息
+     * 向已连接的 ATK 服务发送命令
+     *
+     * 清空之前的事件记录，发送指定命令，并等待响应完成或超时。
+     * 默认等待时间为 3000 毫秒，可通过请求参数自定义。
+     *
+     * @param req 包含命令内容、对象路径、参数及可选等待时间的请求体
+     * @return 包含本次操作期间所有回调事件的日志列表
+     * @throws InterruptedException 若等待过程中被中断
      */
     @PostMapping("/connect")
     public EventsResponse atkConnect(@RequestBody ConnectRequest req) throws InterruptedException {
@@ -107,7 +135,11 @@ public class AtkController {
     }
 
     /**
-     * 关闭与 ATK 的连接
+     * 关闭与 ATK 服务的连接
+     *
+     * 调用底层工具类关闭当前维护的连接（基于 currentHost 和 currentPort）。
+     *
+     * @return 操作完成后返回 "closed"
      */
     @PostMapping("/close")
     public String atkClose() {
@@ -115,16 +147,43 @@ public class AtkController {
         return "closed";
     }
 
+    /**
+     * 安全地将字符串值转为非 null 字符串（null 时返回空串）
+     *
+     * @param s 输入字符串
+     * @return 非 null 字符串
+     */
     private static String nz(String s) { return s == null ? "" : s; }
 
-    // --- DTO ---
-    public static class OpenRequest { public String host; public int port; }
-    public static class ConnectRequest {
-        public String command; public String objPath; public String cmdParam;
-        public Long waitMs;
+    // --- 数据传输对象（DTO）定义 ---
+
+    /**
+     * 打开连接请求的数据结构
+     */
+    public static class OpenRequest {
+        public String host;   // 目标主机地址
+        public int port;      // 目标端口号
     }
+
+    /**
+     * 发送命令请求的数据结构
+     */
+    public static class ConnectRequest {
+        public String command;   // 要执行的命令名称
+        public String objPath;   // 目标对象路径
+        public String cmdParam;  // 命令参数
+        public Long waitMs;      // 等待响应的最长时间（毫秒），可选
+    }
+
+    /**
+     * 命令执行结果的响应结构
+     * 返回回调过程中收集的所有事件日志
+     */
     public static class EventsResponse {
-        public java.util.List<String> events;
-        public EventsResponse(java.util.List<String> events) { this.events = events; }
+        public java.util.List<String> events;  // 回调事件日志列表
+
+        public EventsResponse(java.util.List<String> events) {
+            this.events = events;
+        }
     }
 }
