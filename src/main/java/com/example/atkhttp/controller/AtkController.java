@@ -73,9 +73,9 @@ public class AtkController {
                 connected.countDown();
             }
             @Override public void onReceived(String address, int port, String type, String payload) {
-                String msg = "[CB] onReceived: " + type + " | " + payload;
-                System.out.println(msg);
-                events.add(msg);
+                System.out.println(type);
+                events.add(type);
+                AtkClientTools.commandFlag = true;
             }
             @Override public void onReceivedEx(String address, int port, CmdResult result, int code, String gStrCommand) {
                 String header = "[CB] onReceivedEx: code=" + code + " cmd=" + gStrCommand;
