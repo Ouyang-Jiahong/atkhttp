@@ -91,27 +91,15 @@ def atkClose(base_url: str, timeout: float = 5.0) -> None:
 def atkConnect(
         base_url: str,
         command: str,
-        objPath: str,
-        cmdParam: str = "",
+        cmdParam: str,
         wait_ms: int = 10,
         timeout_connect: float = 10.0,
 ) -> Dict[str, Any]:
     """
     向已连接的 ATK 服务发送一条控制命令并等待响应
 
-    封装了命令发送、事件收集与结果判断的完整流程：
-    - 发送指定命令（command）、对象路径（objPath）和参数（cmdParam）
-    - 等待最多 `wait_ms` 毫秒以获取回调结果（默认 10ms）
-    - 分析返回的事件日志，判断执行是否成功
-
-    返回结构化结果，包含原始请求信息、执行状态、失败原因及详细事件日志。
-
-    示例使用方式：
-        result = atkConnect(base_url, "SET", "/device/power", "ON")
-        if result["ok"]:
-            print("命令执行成功")
-        else:
-            print("失败原因:", result["reason"])
+    发送命令后等待设备响应，根据回调事件判断执行状态。
+    返回结果仅包含 state（ACK/NACK）和预留的 result 字段。
 
     :param base_url: ATK 控制服务的基础 URL
     :param command: 要执行的命令类型（如 SET、GET 等）
@@ -119,30 +107,30 @@ def atkConnect(
     :param cmdParam: 命令参数（可选）
     :param wait_ms: 等待设备响应的最大时间（毫秒），默认 10ms
     :param timeout_connect: 整个 HTTP 请求的超时时间（秒），默认 10 秒
-    :return: 包含以下字段的字典：
-             - command: 原始命令
-             - objPath: 原始对象路径
-             - cmdParam: 原始参数
-             - ok: 是否执行成功（布尔值）
-             - reason: 失败原因（若成功则为空）
-             - events: 回调过程中产生的所有事件日志
-             - waitMs: 实际等待毫秒数
-    :raises requests.RequestException: 若网络请求失败
+    :param last_state: 上一条命令的执行结果，True 表示执行完毕，False 表示未执行完成
+    :return: 字典，包含：
+             - state: "ACK" 表示成功，"NACK" 表示失败
+             - result: 空字符串，留待后续扩展（由 Java 侧决定内容）
+    :raises requests.RequestException: 若网络请求失败（可选：也可捕获并转为 NACK）
     """
     payload = {
         "command": command or "",
-        "objPath": objPath or "",
         "cmdParam": cmdParam or "",
-        "waitMs": int(wait_ms),     # 统一 10ms 等待
+        "waitMs": int(wait_ms),
     }
+
     try:
         r = _post(base_url, "/atk/connect", payload, timeout_connect)
         data = r.json() if r.content else {}
         events = data.get("events", []) if isinstance(data, dict) else []
-        ok, reason = _detect_ok(events)
+        success, reason = _detect_ok(events)  # 使用你的检测逻辑判断成功与否
+        if success == False:
+            print(reason)
+            print(f"命令出现错误：{command} {cmdParam}")
     except Exception as e:
-        ok, reason, events = False, f"http_error: {e}", []
+        success = False
+
     return {
-        "command": command, "objPath": objPath, "cmdParam": cmdParam,
-        "ok": ok, "reason": reason, "events": events, "waitMs": int(wait_ms),
+        "state": "ACK" if success else "NACK",
+        "result": ""  # 留空，等待 Java 侧定义填充逻辑
     }
