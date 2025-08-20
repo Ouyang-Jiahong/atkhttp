@@ -6,6 +6,8 @@ import com.atk.connector.tcp.CmdResult;
 import com.atk.connector.tcp.IClientCallBack;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -92,9 +94,8 @@ public class AtkController {
                 AtkClientTools.commandFlag = true;
             }
             @Override public void onSent(String address, int port, byte[] data) {
-                String msg = "[CB] onSent: " + data.length + " bytes";
+                String msg = "命令发送成功！";
                 System.out.println(msg);
-                events.add(msg);
             }
         };
 
