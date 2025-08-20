@@ -67,7 +67,7 @@ public class AtkController {
                 if (p != null) p.countDown();
             }
             @Override public void onConnected(String address, int port) {
-                String msg = "[CB] onConnected: " + address + ":" + port;
+                String msg = "已连接上 ATK客户端: " + address + ":" + port;
                 System.out.println(msg);
                 events.add(msg);
                 connected.countDown();
