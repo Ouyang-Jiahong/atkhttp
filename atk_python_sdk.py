@@ -2,7 +2,7 @@ import time
 from typing import List, Dict, Any, Tuple
 import requests
 
-# ============== 基础工具函数（统一 200ms 等待策略） ==============
+# ============== 基础工具函数（统一 10ms 等待策略） ==============
 
 def _post(base_url: str, path: str, payload: Dict[str, Any], timeout: float) -> requests.Response:
     """
@@ -93,7 +93,7 @@ def atkConnect(
         command: str,
         objPath: str,
         cmdParam: str = "",
-        wait_ms: int = 200,
+        wait_ms: int = 10,
         timeout_connect: float = 10.0,
 ) -> Dict[str, Any]:
     """
@@ -101,7 +101,7 @@ def atkConnect(
 
     封装了命令发送、事件收集与结果判断的完整流程：
     - 发送指定命令（command）、对象路径（objPath）和参数（cmdParam）
-    - 等待最多 `wait_ms` 毫秒以获取回调结果（默认 200ms）
+    - 等待最多 `wait_ms` 毫秒以获取回调结果（默认 10ms）
     - 分析返回的事件日志，判断执行是否成功
 
     返回结构化结果，包含原始请求信息、执行状态、失败原因及详细事件日志。
@@ -117,7 +117,7 @@ def atkConnect(
     :param command: 要执行的命令类型（如 SET、GET 等）
     :param objPath: 命令作用的对象路径（如 /device/motor）
     :param cmdParam: 命令参数（可选）
-    :param wait_ms: 等待设备响应的最大时间（毫秒），默认 200ms
+    :param wait_ms: 等待设备响应的最大时间（毫秒），默认 10ms
     :param timeout_connect: 整个 HTTP 请求的超时时间（秒），默认 10 秒
     :return: 包含以下字段的字典：
              - command: 原始命令
@@ -133,7 +133,7 @@ def atkConnect(
         "command": command or "",
         "objPath": objPath or "",
         "cmdParam": cmdParam or "",
-        "waitMs": int(wait_ms),     # 统一 200ms 等待
+        "waitMs": int(wait_ms),     # 统一 10ms 等待
     }
     try:
         r = _post(base_url, "/atk/connect", payload, timeout_connect)
