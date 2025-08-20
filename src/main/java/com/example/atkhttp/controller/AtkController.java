@@ -60,7 +60,7 @@ public class AtkController {
 
         IClientCallBack cb = new IClientCallBack() {
             @Override public void onError(Throwable e) {
-                String msg = "[CB] onError: " + e;
+                String msg = "程序出现错误: " + e;
                 System.err.println(msg);
                 events.add(msg);
                 CountDownLatch p = pending;
