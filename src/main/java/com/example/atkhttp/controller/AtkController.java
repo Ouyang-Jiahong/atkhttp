@@ -89,6 +89,7 @@ public class AtkController {
                 }
                 CountDownLatch p = pending;
                 if (p != null) p.countDown();
+                AtkClientTools.commandFlag = true;
             }
             @Override public void onSent(String address, int port, byte[] data) {
                 String msg = "[CB] onSent: " + data.length + " bytes";
