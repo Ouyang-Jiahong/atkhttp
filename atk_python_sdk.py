@@ -129,8 +129,6 @@ def atkConnect(
             print(f"命令出现错误：{command} {cmdParam}")
     except Exception as e:
         success = False
+        events = {}
 
-    return {
-        "state": "ACK" if success else "NACK",
-        "result": ""  # 留空，等待 Java 侧定义填充逻辑
-    }
+    return events
