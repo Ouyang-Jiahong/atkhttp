@@ -40,9 +40,18 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>ATKConnectorTools</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/ATKConnectorTools.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>
+        <finalName>atk_python_sdk_service</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
