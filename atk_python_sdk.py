@@ -91,15 +91,13 @@ def atkClose(base_url: str, timeout: float = 5.0) -> None:
 def atkConnect(
         base_url: str,
         command: str,
+        objPath: str,
         cmdParam: str,
         wait_ms: int = 10,
         timeout_connect: float = 10.0,
-) -> Dict[str, Any]:
+) -> List[str]:
     """
     向已连接的 ATK 服务发送一条控制命令并等待响应
-
-    发送命令后等待设备响应，根据回调事件判断执行状态。
-    返回结果仅包含 state（ACK/NACK）和预留的 result 字段。
 
     :param base_url: ATK 控制服务的基础 URL
     :param command: 要执行的命令类型（如 SET、GET 等）
@@ -107,14 +105,12 @@ def atkConnect(
     :param cmdParam: 命令参数（可选）
     :param wait_ms: 等待设备响应的最大时间（毫秒），默认 10ms
     :param timeout_connect: 整个 HTTP 请求的超时时间（秒），默认 10 秒
-    :param last_state: 上一条命令的执行结果，True 表示执行完毕，False 表示未执行完成
-    :return: 字典，包含：
-             - state: "ACK" 表示成功，"NACK" 表示失败
-             - result: 空字符串，留待后续扩展（由 Java 侧决定内容）
-    :raises requests.RequestException: 若网络请求失败（可选：也可捕获并转为 NACK）
+    :return: 回调事件日志列表
+    :raises requests.RequestException: 若网络请求失败
     """
     payload = {
         "command": command or "",
+        "objPath": objPath or "",
         "cmdParam": cmdParam or "",
         "waitMs": int(wait_ms),
     }
@@ -123,12 +119,11 @@ def atkConnect(
         r = _post(base_url, "/atk/connect", payload, timeout_connect)
         data = r.json() if r.content else {}
         events = data.get("events", []) if isinstance(data, dict) else []
-        success, reason = _detect_ok(events)  # 使用你的检测逻辑判断成功与否
-        if success == False:
+        success, reason = _detect_ok(events)
+        if not success:
             print(reason)
             print(f"命令出现错误：{command} {cmdParam}")
-    except Exception as e:
-        success = False
-        events = {}
+    except Exception:
+        events = []
 
     return events
