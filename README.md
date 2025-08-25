@@ -4,7 +4,7 @@
 ![alt text](figures/image.png)
 ![alt text](figures/image-1.png)
 
-点入Dependancies界面，然后点击加号，加入JARs or Directories，选择我们加入到项目文件夹中的`ATKConnectorTools.jar`（ATK官方提供的Connect模式Java二次开发包）。
+点入Dependencies界面，然后点击加号，加入JARs or Directories，选择我们加入到项目文件夹中的`ATKConnectorTools.jar`（ATK官方提供的Connect模式Java二次开发包）。
 
 然后找到我们加入的开发包，点上勾，并且确保Scope是Compile模式，如下图所示：
 ![alt text](figures/image-2.png)
